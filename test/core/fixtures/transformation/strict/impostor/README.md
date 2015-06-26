@@ -1,0 +1,1 @@
+`"use strict"` and `"use\x20strict"` evaluate to identical values, but are not semantically equivalent. The former is a pragma directive, the latter is an insignificant string literal. See https://github.com/babel/babel/pull/1852.
