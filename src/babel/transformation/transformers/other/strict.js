@@ -10,12 +10,17 @@ export var visitor = {
   Program: {
     enter(program) {
       var first = program.body[0];
-
+      var useStrict = "use strict";
       var directive;
-      if (t.isExpressionStatement(first) && t.isLiteral(first.expression, { value: "use strict" })) {
+
+      if (
+        t.isExpressionStatement(first) &&
+        t.isLiteral(first.expression) &&
+        first.expression.raw.slice(1, -1) === useStrict
+      ) {
         directive = first;
       } else {
-        directive = t.expressionStatement(t.literal("use strict"));
+        directive = t.expressionStatement(t.literal(useStrict));
         this.unshiftContainer("body", directive);
         if (first) {
           directive.leadingComments = first.leadingComments;
