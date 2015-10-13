@@ -64,6 +64,8 @@ export default class PluginManager {
     this.file         = file;
     this.before       = before;
     this.after        = after;
+
+    this.resolvedPlugins = [];
   }
 
   /**
@@ -82,7 +84,8 @@ export default class PluginManager {
       var plugin = require(loc);
       return {
         position: position,
-        plugin:   plugin.default || plugin
+        plugin:   plugin.default || plugin,
+        pathname: loc
       };
     } else {
       throw new ReferenceError(messages.get("pluginUnknown", name));
@@ -116,6 +119,7 @@ export default class PluginManager {
   add(name) {
     var position;
     var plugin;
+    var pathname;
 
     if (name) {
       if (typeof name === "object" && name.transformer) {
@@ -127,7 +131,10 @@ export default class PluginManager {
       }
 
       if (typeof name === "string") {
-        ({ plugin, position } = this.subnormaliseString(name, position));
+        ({ plugin, position, pathname } = this.subnormaliseString(name, position));
+
+        if (this.resolvedPlugins.indexOf(pathname) >= 0) return;
+        this.resolvedPlugins.push(pathname);
       }
     } else {
       throw new TypeError(messages.get("pluginIllegalKind", typeof name, name));
