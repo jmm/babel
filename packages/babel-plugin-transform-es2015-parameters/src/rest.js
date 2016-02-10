@@ -55,22 +55,54 @@ let memberExpressionOptimisationVisitor = {
       let {parentPath} = path;
       let grandparentPath = parentPath.parentPath;
 
-      // ex: args[0]
-      if (
-        parentPath.isMemberExpression({ computed: true, object: node }) &&
 
-        // ex: `args[0] = "whatever"`
-        !(
-          grandparentPath.isAssignmentExpression() &&
-          parentPath.node === grandparentPath.node.left
-        )
-      ) {
-        // if we know that this member expression is referencing a number then
-        // we can safely optimise it
-        let prop = parentPath.get("property");
-        if (prop.isBaseType("number")) {
-          state.candidates.push({cause: "indexGetter", path});
-          return;
+      // ex: `args[0]`
+      // ex: `args.whatever`
+      if (parentPath.isMemberExpression({ object: node })) {
+        if (
+          // ex: `args[0] = "whatever"`
+          (
+            grandparentPath.isAssignmentExpression() &&
+            parentPath.node === grandparentPath.node.left
+          ) ||
+
+          // ex: `for (rest[0] in this)`
+          grandparentPath.isForInStatement({ left: parentPath.node }) ||
+
+          // ex: `[args[0]] = ["whatever"]`
+          (
+            grandparentPath.isPattern() &&
+            parentPath.node !== grandparentPath.node.right
+          ) ||
+
+          // ex: `++args[0]`
+          // ex: `args[0]--`
+          grandparentPath.isUpdateExpression() ||
+
+          // ex: `delete args[0]`
+          grandparentPath.isUnaryExpression({ operator: "delete" }) ||
+
+          // ex: `args[0]()`
+          // ex: `new args[0]()`
+          // ex: `new args[0]`
+          (
+            (
+              grandparentPath.isCallExpression() || grandparentPath.isNewExpression()
+            ) &&
+            parentPath.node === grandparentPath.node.callee
+          )
+        ) {
+          state.optEligible = false;
+        }
+
+        else {
+          // if we know that this member expression is referencing a number then
+          // we can safely optimise it
+          let prop = parentPath.get("property");
+          if (prop.isBaseType("number")) {
+            state.candidates.push({cause: "indexGetter", path});
+            return;
+          }
         }
       }
 
